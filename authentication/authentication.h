@@ -5,4 +5,9 @@
 #ifndef AUTHENTICATION_H
 #define AUTHENTICATION_H
 
+enum UserType {
+    admin = 0,
+    user = 1
+};
+
 #endif // AUTHENTICATION_H
