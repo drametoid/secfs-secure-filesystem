@@ -27,4 +27,20 @@ bool createDirectory(const fs::path& path) {
     }
 }
 
+std::vector<uint8_t> readEncKeyFromMetadata(const std::string& userName, const std::string& directory) {
+    const std::string metadataFilePath = !directory.empty() ? directory : "common/";
+    std::ifstream metadataFile(metadataFilePath + userName + "_key", std::ios::in | std::ios::binary);
+
+    if (!metadataFile) {
+        std::cerr << "Failed to read key from metadata for " << userName << std::endl;
+        return {}; // Return an empty vector if the file failed to open
+    }
+
+    std::vector<uint8_t> encryptionKey(KEY_SIZE);
+    metadataFile.read(reinterpret_cast<char*>(encryptionKey.data()), encryptionKey.size());
+
+    return encryptionKey;
+}
+
+
 #endif // HELPER_FUNCTIONS_H
