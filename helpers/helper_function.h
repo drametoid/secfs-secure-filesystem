@@ -5,8 +5,18 @@
 #ifndef HELPER_FUNCTIONS_H
 #define HELPER_FUNCTIONS_H
 
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <vector>
+#include <openssl/rand.h>
+#include <regex>
+#include <sstream>
+#include <string>
+#include <unistd.h>
+
+#include "encryption/randomizer_function.h"
 
 namespace fs = std::filesystem;
 
@@ -40,6 +50,30 @@ std::vector<uint8_t> readEncKeyFromMetadata(const std::string& userName, const s
     metadataFile.read(reinterpret_cast<char*>(encryptionKey.data()), encryptionKey.size());
 
     return encryptionKey;
+}
+
+
+void createInitFsForUser(const std::string& username, const std::string& path) {
+    mode_t old_umask = umask(0); // to ensure the following modes get set
+    mode_t mode = 0700;
+
+    std::string encrypted_username = FilenameRandomizer::EncryptFilename("/filesystem/" + username, path);
+    std::string u_folder = path + "/filesystem/" + encrypted_username;
+    if (mkdir(u_folder.c_str(), mode) != 0) {
+        std::cerr << "Error creating root folder for " << username << std::endl;
+    } else {
+        std::string encrypted_p_folder = FilenameRandomizer::EncryptFilename("/filesystem/" + encrypted_username + "/personal", path);
+        u_folder = path + "/filesystem/" + encrypted_username + "/" + encrypted_p_folder;
+        if (mkdir(u_folder.c_str(), mode) != 0) {
+            std::cerr << "Error creating personal folder for " << username << std::endl;
+        }
+        std::string encrypted_s_folder = FilenameRandomizer::EncryptFilename("/filesystem/" + encrypted_username + "/shared", path);
+        u_folder = path + "/filesystem/" + encrypted_username + "/" + encrypted_s_folder;
+        if (mkdir(u_folder.c_str(), mode) != 0) {
+            std::cerr << "Error creating shared folder for " << username << std::endl;
+        }
+    }
+    umask(old_umask); // Restore the original umask value
 }
 
 
