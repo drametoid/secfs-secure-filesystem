@@ -56,4 +56,43 @@ void Encryption::initCipherContext(EVP_CIPHER_CTX*& ctx, const std::vector<uint8
     }
 }
 
+void Encryption::encryptFile(const std::string& filePath, const std::string& content, const std::vector<uint8_t>& key) {
+    uint8_t iv[IV_SIZE];
+    RAND_bytes(iv, sizeof(iv));
+    unsigned char tag[TAG_SIZE];
+    EVP_CIPHER_CTX* ctx;
+
+    initCipherContext(ctx, key, iv, true);
+
+    std::ofstream outputFile(filePath, std::ios::binary);
+    if (!outputFile.is_open()) {
+        handleErrors("Failed to open output file.");
+    }
+
+    std::vector<unsigned char> buffer(content.begin(), content.end());
+    buffer.resize(buffer.size() + BLOCK_SIZE); // Ensure space for padding
+    int len = 0, ciphertextLen = 0;
+
+    if (1 != EVP_EncryptUpdate(ctx, buffer.data(), &len, buffer.data(), buffer.size())) {
+        handleErrors("Encryption failed.");
+    }
+    ciphertextLen += len;
+
+    if (1 != EVP_EncryptFinal_ex(ctx, buffer.data() + len, &len)) {
+        handleErrors("Final encryption step failed.");
+    }
+    ciphertextLen += len;
+
+    if (1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, TAG_SIZE, tag)) {
+        handleErrors("Failed to get tag.");
+    }
+
+    outputFile.write(reinterpret_cast<char*>(iv), IV_SIZE);
+    outputFile.write(reinterpret_cast<char*>(tag), TAG_SIZE);
+    outputFile.write(reinterpret_cast<char*>(buffer.data()), ciphertextLen);
+
+    EVP_CIPHER_CTX_free(ctx);
+    outputFile.close();
+}
+
 #endif // FILESERVER_ENCRYPTION_H
