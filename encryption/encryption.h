@@ -30,4 +30,30 @@ private:
     static void initCipherContext(EVP_CIPHER_CTX*& ctx, const std::vector<uint8_t>& key, const uint8_t* iv, bool encrypt);
 };
 
+void Encryption::handleErrors(const std::string& message) {
+    std::cerr << message << std::endl;
+    exit(EXIT_FAILURE); // It's more conventional to exit with a failure status on error.
+}
+
+void Encryption::initCipherContext(EVP_CIPHER_CTX*& ctx, const std::vector<uint8_t>& key, const uint8_t* iv, bool encrypt) {
+    ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        handleErrors("Cipher context initialization failed.");
+    }
+
+    if (encrypt) {
+        if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, key.data(), iv)) {
+            handleErrors("Encryption initialization failed.");
+        }
+    } else {
+        if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, key.data(), iv)) {
+            handleErrors("Decryption initialization failed.");
+        }
+    }
+
+    if (1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, IV_SIZE, nullptr)) {
+        handleErrors("Failed to set IV length.");
+    }
+}
+
 #endif // FILESERVER_ENCRYPTION_H
