@@ -5,6 +5,7 @@
 #ifndef AUTHENTICATION_H
 #define AUTHENTICATION_H
 
+#include "helpers/helper_functions.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -16,6 +17,67 @@ enum UserType {
     admin = 0,
     user = 1
 };
+
+/// Add a user to the system
+/// \param userName     The username to add
+/// \param directory    The directory to add the user to
+/// \param isAdmin    Whether the user is an admin
+void addUser(const std::string& userName, std::string directory, bool isAdmin= false)
+{
+    std::string normalizedDir = directory + "/";
+    if (userName.length() > 50) {
+        std::cout << "Error: Username is too long." << std::endl;
+        return;
+    }
+    if (!isAdmin && userName == "admin") {
+        std::cout << "Error: Invalid Username." << std::endl;
+        return;
+    }
+
+    std::regex validUsernameRegex("^[a-zA-Z0-9]*$");
+    if (!std::regex_match(userName, validUsernameRegex)) {
+        std::cout << "Error: Username contains invalid characters." << std::endl;
+        return;
+    }
+
+    // Check if user already exists
+    std::string publicKeyPath = normalizedDir + "key/public_keys/" + userName + ".pub";
+    std::string privateKeyPath = normalizedDir + "key/private_keys/" + userName + "_keyfile";
+    if (std::filesystem::exists(publicKeyPath) || std::filesystem::exists(privateKeyPath)) {
+        std::cout << "User " << userName << " already exists." << std::endl;
+        return;
+    }
+
+    // Generate SSH key pair
+    std::string privateKeyFile = normalizedDir + "key/private_keys/" + userName;
+    std::string generateKeyCommand = "ssh-keygen -t rsa -b 2048 -C 'created_by_encrypted_fs' -f " + privateKeyFile + " -N '' -q";
+    system(generateKeyCommand.c_str());
+
+    // Move and rename key files
+    std::filesystem::rename(privateKeyFile + ".pub", publicKeyPath);
+    std::filesystem::rename(privateKeyFile, privateKeyPath);
+
+    // Post-creation steps
+    std::cout << "User " << userName << " added successfully." << std::endl;
+
+    // Create metadata key file if not present
+    std::fstream file(normalizedDir + "/common/" + userName + "_key", std::ios::out | std::ios::binary);
+    if (!file.is_open()) {
+        std::cout << "Failed to create user metadata key file" << std::endl;
+        return;
+    }
+
+    // Create 256-bit key
+    uint8_t key[KEY_SIZE];
+    RAND_bytes(key, KEY_SIZE);
+    file.write((char *) key, KEY_SIZE);
+    file.close();
+
+    std::ofstream outfile(normalizedDir + "common/user_list", std::ios_base::app);
+    outfile << userName << "\n";
+    outfile.close();
+    createInitFsForUser(userName, normalizedDir);
+}
 
 /// Check if a keyfile is valid
 /// \param userName    The username to check
