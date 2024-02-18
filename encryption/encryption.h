@@ -95,4 +95,47 @@ void Encryption::encryptFile(const std::string& filePath, const std::string& con
     outputFile.close();
 }
 
+std::string Encryption::decryptFile(const std::string& filePath, const std::vector<uint8_t>& key) {
+    std::ifstream inputFile(filePath, std::ios::binary);
+    if (!inputFile.is_open()) {
+        handleErrors("Failed to open input file.");
+    }
+
+    uint8_t iv[IV_SIZE], tag[TAG_SIZE];
+    inputFile.read(reinterpret_cast<char*>(iv), IV_SIZE);
+    inputFile.read(reinterpret_cast<char*>(tag), TAG_SIZE);
+
+    EVP_CIPHER_CTX* ctx;
+    initCipherContext(ctx, key, iv, false);
+
+    std::vector<unsigned char> buffer((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
+    std::vector<unsigned char> decryptedText(buffer.size());
+
+    int len = 0, plaintextLen = 0;
+    if (1 != EVP_DecryptUpdate(ctx, decryptedText.data(), &len, buffer.data(), buffer.size())) {
+        handleErrors("Decryption failed.");
+    }
+    plaintextLen += len;
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, TAG_SIZE, tag)) {
+        handleErrors("Failed to set expected tag.");
+    }
+
+    if (1 != EVP_DecryptFinal_ex(ctx, decryptedText.data() + len, &len)) {
+        handleErrors("Tag verification failed.");
+    }
+    plaintextLen += len;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    std::string ptOutput(decryptedText.begin(), decryptedText.begin() + plaintextLen);
+    
+    // Fix: Delete first character if it's a space
+    if (!ptOutput.empty() && ptOutput[0] == ' ') {
+        ptOutput.erase(0, 1);
+    }
+
+    return ptOutput;
+}
+
 #endif // FILESERVER_ENCRYPTION_H
