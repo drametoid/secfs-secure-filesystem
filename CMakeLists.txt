@@ -25,9 +25,9 @@ set(HEADERS
     encryption/randomizer_function.h
     
     features/features.h
-    features/features_helper.h
+    features/features_helpers.h
     
-    helpers/helper_function.h
+    helpers/helper_functions.h
     helpers/json.hpp
     
     authentication/authentication.h

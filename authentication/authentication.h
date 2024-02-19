@@ -12,6 +12,7 @@
 #include <regex>
 #include <string>
 
+#include "encryption/encryption.h"
 #include "helpers/helper_functions.h"
 
 enum UserType {
@@ -149,7 +150,5 @@ std::string getTypeOfUser(const std::string& keyFileName)
     std::cerr << "Invalid keyfile" << std::endl;
     exit(EXIT_FAILURE); // Consider throwing an exception instead of exiting
 }
-
-
 
 #endif // AUTHENTICATION_H

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
 #include <filesystem>
 
 #include "authentication/authentication.h"

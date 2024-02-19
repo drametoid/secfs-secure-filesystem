@@ -16,6 +16,7 @@
 #include <string>
 #include <unistd.h>
 
+#include "encryption/encryption.h"
 #include "encryption/randomizer_function.h"
 
 namespace fs = std::filesystem;
