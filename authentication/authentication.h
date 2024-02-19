@@ -5,13 +5,14 @@
 #ifndef AUTHENTICATION_H
 #define AUTHENTICATION_H
 
-#include "helpers/helper_functions.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <regex>
 #include <string>
+
+#include "helpers/helper_functions.h"
 
 enum UserType {
     admin = 0,
