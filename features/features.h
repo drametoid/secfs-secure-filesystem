@@ -17,6 +17,36 @@ void printDecryptedCurrentPath(std::string filesystemPath) {
   std::cout << pwd << std::endl;
 }
 
+/**
+ * Shows content of current directory
+ * @param filesystemPath The base path of the filesystem
+ */
+void listDirectoryContents(std::string filesystemPath) {
+    std::string path = fs::current_path();
+    std::cout << "d -> ." << std::endl;
+
+    if (path != filesystemPath + "/filesystem") {
+        std::cout << "d -> .." << std::endl;
+    }
+
+    for (const fs::directory_entry& entry : fs::directory_iterator(path)) {
+        std::string entryPath = entry.path().filename().string();
+
+        if (entryPath.find(".") == 0) {
+            continue;
+        }
+
+        fs::file_status status = entry.status();
+        std::string decryptedName = FilenameRandomizer::DecryptFilename(entryPath, filesystemPath);
+
+        if (status.type() == fs::file_type::directory) {
+            std::cout << "d -> " << decryptedName << std::endl;
+        } else if (status.type() == fs::file_type::regular) {
+            std::cout << "f -> " << decryptedName << std::endl;
+        }
+    }
+}
+
 int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystem_path) {
     std::cout << "++++++++++++++++++++++++" << std::endl;
     std::cout << "++| WELCOME TO EFS! |++" << std::endl;
@@ -53,6 +83,8 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
 
         if (cmd == "pwd") {
             printDecryptedCurrentPath(filesystem_path);
+        } else if (cmd == "ls") {
+            listDirectoryContents(filesystem_path);
         }
     } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
 
