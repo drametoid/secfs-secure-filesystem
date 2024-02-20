@@ -47,6 +47,49 @@ void listDirectoryContents(std::string filesystemPath) {
     }
 }
 
+/**
+ * Shows file contents based on user access.
+ *
+ * @param inputStream Filename to access.
+ * @param filesystemPath The base path of the filesystem.
+ * @param userType User type.
+ * @param key The encryption key used for decrypting the file content.
+ */
+void processFileAccess(std::istringstream& inputStream, std::string filesystemPath, UserType userType, std::vector<uint8_t> key) {
+    std::string filename;
+    inputStream >> filename;
+
+    if (filename.empty()) {
+        std::cout << "File name not provided" << std::endl;
+        return;
+    }
+    if (filename.find('/') != std::string::npos) {
+        std::cout << "File name cannot contain '/'" << std::endl;
+        return;
+    }
+
+    std::string path = getCustomPWD(filesystemPath) + "/" + filename;
+    std::string encryptedName = FilenameRandomizer::GetRandomizedName(path, filesystemPath);
+
+    if (!fs::exists(encryptedName)) {
+        std::cerr << "File does not exist" << std::endl;
+        return;
+    }
+    if (fs::is_directory(fs::status(encryptedName))) {
+        std::cerr << "File does not exist" << std::endl;
+        return;
+    }
+
+    if (userType == UserType::admin) {
+        std::string pwd = decryptFilePath(getCustomPWD(filesystemPath), filesystemPath);
+        std::string userForKey = getUsernameFromPath(pwd);
+        std::vector<uint8_t> userKey = readEncKeyFromMetadata(userForKey, filesystemPath + "/common/");
+        std::cout << Encryption::decryptFile(encryptedName, userKey) << std::endl;
+    } else {
+        std::cout << Encryption::decryptFile(encryptedName, key) << std::endl;
+    }
+}
+
 int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystem_path) {
     std::cout << "++++++++++++++++++++++++" << std::endl;
     std::cout << "++| WELCOME TO EFS! |++" << std::endl;
@@ -85,6 +128,8 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
             printDecryptedCurrentPath(filesystem_path);
         } else if (cmd == "ls") {
             listDirectoryContents(filesystem_path);
+        } else if (cmd == "cat") {
+            processFileAccess(istring_stream, filesystem_path, user_type, key);
         }
     } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
 

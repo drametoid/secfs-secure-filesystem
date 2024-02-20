@@ -53,6 +53,23 @@ std::vector<uint8_t> readEncKeyFromMetadata(const std::string& userName, const s
     return encryptionKey;
 }
 
+std::string getUsernameFromPath(const std::string& path) {
+    const std::string filesystemPrefix = "/filesystem/";
+    if (path.size() <= filesystemPrefix.size()) return "";
+
+    // Remove the filesystem prefix from the start of the path
+    std::string withoutPrefix = path.substr(filesystemPrefix.size());
+
+    // Find the next slash after the username
+    size_t slashIndex = withoutPrefix.find('/');
+    if (slashIndex != std::string::npos) {
+        // If found, truncate the string to only include the username
+        return withoutPrefix.substr(0, slashIndex);
+    }
+
+    // If no further slash is found, the remaining string is the username
+    return withoutPrefix;
+}
 
 void createInitFsForUser(const std::string& username, const std::string& path) {
     mode_t old_umask = umask(0); // to ensure the following modes get set
