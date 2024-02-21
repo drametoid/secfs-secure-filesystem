@@ -53,6 +53,14 @@ std::vector<uint8_t> readEncKeyFromMetadata(const std::string& userName, const s
     return encryptionKey;
 }
 
+bool checkIfPersonalDirectory(const std::string& username, const std::string& pwd, const std::string& filesystemPath) {
+    std::string userDirectory = FilenameRandomizer::GetRandomizedName("/filesystem/" + username, filesystemPath);
+    std::string personalDirectory = FilenameRandomizer::GetRandomizedName("/filesystem/" + userDirectory + "/personal", filesystemPath);
+    std::string authorizedWritePath = "/filesystem/" + userDirectory + "/" + personalDirectory;
+    return (pwd.length() >= authorizedWritePath.length() &&
+           pwd.substr(0, authorizedWritePath.length()) == authorizedWritePath);
+}
+
 std::string getUsernameFromPath(const std::string& path) {
     const std::string filesystemPrefix = "/filesystem/";
     if (path.size() <= filesystemPrefix.size()) return "";
