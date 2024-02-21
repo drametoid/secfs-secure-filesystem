@@ -126,6 +126,32 @@ bool isFileSharedWithUser(std::string filename, std::string filesystemPath, std:
     return false; // Return false if no matching shared file is found
 }
 
+std::string getEncFilename(std::string inputFilename, std::string inputPath, std::string filesystemPath, bool isMkdir) {
+  int dirItrPath = inputPath.find_last_of('/');
+  for (fs::directory_entry entry : fs::directory_iterator(filesystemPath + inputPath.substr(0, dirItrPath+1))) {
+    std::string entryPath = entry.path();
+    int deleteUpto = entryPath.find_last_of('/') + 1;
+    entryPath.erase(0, deleteUpto);
+
+    fs::file_status status = fs::status(entryPath);
+    std::string decryptedName = FilenameRandomizer::DecryptFilename(entryPath, filesystemPath);
+    // Return same path if a file with the same name exists
+    if (inputFilename == decryptedName && status.type() == fs::file_type::regular) {
+      if (!isMkdir)
+        return entryPath;
+      else {
+        std::cerr << "A file with the same name already exists in the current path. Please choose a different name." << std::endl;
+        return "";
+      }
+    }
+    else if (inputFilename == decryptedName && status.type() == fs::file_type::directory) {
+      std::cerr << "A directory with the same name already exists in the current path. Please choose a different name." << std::endl;
+      return "";
+    }
+  }
+  return FilenameRandomizer::EncryptFilename(inputPath, filesystemPath);
+}
+
 // Helper function to process the path and extract/decrypt filenames
 std::vector<std::string> processAndDecryptPath(std::string path, const std::string& filesystemPath) {
     const std::string delimiter = "/";

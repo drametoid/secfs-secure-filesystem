@@ -182,6 +182,65 @@ void handleFileSharing(std::istringstream& inputStream, std::string userName, st
     }
 }
 
+/**
+ * Create directory
+ *
+ * @param directoryName The name of the directory to create.
+ * @param filesystemPath The base filesystem path.
+ * @param username Username.
+ */
+void createDirectoryInUserSpace(std::string directoryName, std::string &filesystemPath, std::string username) {
+  if (!checkIfPersonalDirectory(username, getCustomPWD(filesystemPath), filesystemPath)) {
+    std::cerr << "Forbidden" << std::endl;
+    return;
+  }
+
+  if (directoryName.find('/') != std::string::npos) {
+    std::cout << "Directory name cannot contain '/'" << std::endl;
+    return;
+  }
+
+  std::string path = getCustomPWD(filesystemPath) + "/" + directoryName;
+  std::string encryptedName = getEncFilename(directoryName, path, filesystemPath, true);
+  if (!encryptedName.empty()) {
+    system(("mkdir -p " + encryptedName).c_str());
+    std::cout << "Directory created successfully." << std::endl;
+  }
+}
+
+/**
+ * Handles the creation of a new directory.
+ *
+ * @param directoryName Directory name.
+ * @param filesystemPath The base path of the filesystem.
+ * @param userName Username.
+ */
+void processCreateDirectoryInUserSpace(std::string directoryName, std::string filesystemPath, std::string userName) {
+    if (directoryName.find('/') != std::string::npos || directoryName.find('`') != std::string::npos) {
+        std::cerr << "Directory name cannot contain '/' or '`'" << std::endl;
+        return;
+    }
+    if (!checkIfPersonalDirectory(userName, getCustomPWD(filesystemPath), filesystemPath)) {
+        std::cout << "Forbidden: User lacks permission to create directory here." << std::endl;
+        return;
+    }
+    if (directoryName.empty() || directoryName == "filesystem" || directoryName == "." || directoryName == "..") {
+        std::cerr << "Invalid directory name provided." << std::endl;
+        return;
+    }
+    
+    fs::path targetPath = fs::absolute(directoryName);
+    if (fs::exists(targetPath) && fs::is_directory(targetPath)) {
+        std::cerr << "Directory already exists." << std::endl;
+        return;
+    }
+    try {
+        createDirectoryInUserSpace(directoryName, filesystemPath, userName);
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Failed to create directory: " << e.what() << std::endl;
+    }
+}
+
 int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystem_path) {
     std::cout << "++++++++++++++++++++++++" << std::endl;
     std::cout << "++| WELCOME TO EFS! |++" << std::endl;
@@ -232,6 +291,9 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
             processFileAccess(istring_stream, filesystem_path, user_type, key);
         } else if (cmd == "share") {
             handleFileSharing(istring_stream, user_name, key, filesystem_path);
+        } else if (cmd == "mkdir") {
+            istring_stream >> directory_name;
+            processCreateDirectoryInUserSpace(directory_name, filesystem_path, user_name);
         }
     } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
 
