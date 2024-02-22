@@ -327,6 +327,10 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
             processCreateDirectoryInUserSpace(directory_name, filesystem_path, user_name);
         } else if (cmd == "mkfile") {
             processFileCreation(istring_stream, user_name, key, filesystem_path);
+        } else if (cmd == "exit") {
+            exit(EXIT_SUCCESS);
+        } else {
+            std::cout << "Invalid Command" << std::endl;
         }
     } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
 
