@@ -64,6 +64,53 @@ std::string getRandomizedUserDirectory(const std::string& username, const std::s
 std::string getRandomizedSharedDirectory(const std::string& randomizedUserDirectory, const std::string& filesystemPath) {
     return FilenameRandomizer::GetRandomizedName("/filesystem/" + randomizedUserDirectory + "/shared", filesystemPath);
 }
+
+// Parses the contents of the shared file to extract usernames and keys.
+void parseFileContents(std::ifstream& file, std::vector<std::string>& keys, std::vector<std::string>& usernames) {
+  std::string line;
+  while (std::getline(file, line)) {
+    size_t pos = line.find(":");
+    if (pos != std::string::npos) {
+      std::string username = line.substr(0, pos);
+      std::string key = line.substr(pos + 1);
+      usernames.push_back(username);
+      keys.push_back(key);
+    }
+  }
+}
+
+// Checks if a file is shared, and if so, updates shared files accordingly.
+void checkIfShared(std::string randomizedFilename, std::string filesystemPath, std::string content) {
+  // Construct the filepath to the shared file directory
+  std::string filepath = filesystemPath + "/shared/" + randomizedFilename;
+
+  if (fs::exists(filepath)) {
+    std::ifstream file(filepath);
+    std::vector<std::string> keys, usernames;
+    parseFileContents(file, keys, usernames);
+    file.close(); // Ensure file is closed after reading
+
+    updateSharedFiles(keys, usernames, randomizedFilename, filesystemPath, content);
+  }
+}
+
+// Updates shared files with encrypted content for each user specified in the usernames vector
+void updateSharedFiles(std::vector<std::string> keys, std::vector<std::string> usernames, std::string randomizedFilename, std::string filesystemPath, std::string content) {
+    for (int i = 0; i < keys.size(); i++) {
+        std::string key = keys[i];
+        std::string sharedRandomizedFilename = FilenameRandomizer::GetRandomizedName(key, filesystemPath);
+
+        int lastOccurence = key.find_last_of('/');
+        key.erase(lastOccurence + 1, key.length());
+
+        std::string shareUserPath = filesystemPath + key + sharedRandomizedFilename;
+        std::vector<uint8_t> shareKey = readEncKeyFromMetadata(usernames[i], filesystemPath + "/common/");
+        
+        // Encrypt the file at the specified path with the provided content using the user's encryption key
+        Encryption::encryptFile(shareUserPath, content, shareKey);
+    }
+}
+
 // Checks a specific file for a match with the shared username and the value to check
 bool checkSpecificFile(const std::string& filepath, const std::string& sharedUsername, const std::string& valueToCheck) {
     if (fs::exists(filepath)) {
@@ -150,6 +197,33 @@ std::string getEncFilename(std::string inputFilename, std::string inputPath, std
     }
   }
   return FilenameRandomizer::EncryptFilename(inputPath, filesystemPath);
+}
+
+// Creates and encrypts a file within the user's personal directory after performing security checks.
+void createAndEncryptFile(std::string filename, std::string contents, std::vector<uint8_t> key, std::string filesystemPath, std::string username) {
+  // Ensure the operation is within the user's personal directory
+  if (!checkIfPersonalDirectory(username, getCustomPWD(filesystemPath), filesystemPath)) {
+    std::cout << "Forbidden " << std::endl; // Operation is not allowed if outside personal directory
+    return;
+  }
+
+  // Ensure the filename does not contain illegal characters ("/")
+  if (filename.find('/') != std::string::npos) {
+    std::cout << "File name cannot contain '/'" << std::endl;
+    return;
+  }
+
+  // Construct the full path for the file
+  std::string path = getCustomPWD(filesystemPath) + "/" + filename;
+  // Obtain an encrypted name for the file, to maintain security or privacy
+  std::string encryptedName = getEncFilename(filename, path, filesystemPath, false);
+  if (!encryptedName.empty()) {
+    // Encrypt and save the file with the encrypted name
+    Encryption::encryptFile(encryptedName, contents, key);
+    // Check if the file is intended to be shared and handle accordingly
+    checkIfShared(encryptedName, filesystemPath, contents);
+    std::cout << "File created and encrypted successfully!" << std::endl;
+  }
 }
 
 // Helper function to process the path and extract/decrypt filenames

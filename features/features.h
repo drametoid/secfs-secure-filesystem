@@ -241,6 +241,37 @@ void processCreateDirectoryInUserSpace(std::string directoryName, std::string fi
     }
 }
 
+/**
+ * Creates new file
+ *
+ * @param inputStream The input stream to extract the filename and contents from.
+ * @param userName The name of the user attempting to create the file.
+ * @param key The encryption key for the file.
+ * @param filesystemPath The base path of the filesystem.
+ */
+void processFileCreation(std::istringstream& inputStream, std::string userName, std::vector<uint8_t> key, std::string filesystemPath) {
+    std::string filename, contents;
+    inputStream >> filename;
+    std::getline(inputStream, contents);
+
+    if (filename.find('/') != std::string::npos) {
+        std::cout << "File name cannot contain '/'" << std::endl;
+        return;
+    }
+    if (!checkIfPersonalDirectory(userName, getCustomPWD(filesystemPath), filesystemPath)) {
+        std::cout << "Forbidden" << std::endl;
+        return;
+    }
+
+    std::filesystem::path pathObj(filename);
+    std::string filenameStr = pathObj.filename().string();
+    if (!filenameStr.empty() && isValidFilename(filename)) {
+        createAndEncryptFile(filename, contents, key, filesystemPath, userName);
+    } else {
+        std::cerr << "Not a valid filename, try again." << std::endl;
+    }
+}
+
 int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystem_path) {
     std::cout << "++++++++++++++++++++++++" << std::endl;
     std::cout << "++| WELCOME TO EFS! |++" << std::endl;
@@ -294,6 +325,8 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
         } else if (cmd == "mkdir") {
             istring_stream >> directory_name;
             processCreateDirectoryInUserSpace(directory_name, filesystem_path, user_name);
+        } else if (cmd == "mkfile") {
+            processFileCreation(istring_stream, user_name, key, filesystem_path);
         }
     } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
 
