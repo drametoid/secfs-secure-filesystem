@@ -272,6 +272,23 @@ void processFileCreation(std::istringstream& inputStream, std::string userName, 
     }
 }
 
+/**
+ * Admin adds new user
+ *
+ * @param inputStream The input stream for new user's name.
+ * @param filesystemPath The base path of the filesystem.
+ */
+void processAddUser(std::istringstream& inputStream, std::string filesystemPath) {
+    std::string newUser;
+    inputStream >> newUser;
+
+    if (newUser.empty()) {
+        std::cerr << "Please enter a username" << std::endl;
+        return;
+    }
+    addUser(newUser, filesystemPath, false);
+}
+
 int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystem_path) {
     std::cout << "++++++++++++++++++++++++" << std::endl;
     std::cout << "++| WELCOME TO EFS! |++" << std::endl;
@@ -329,9 +346,15 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
             processFileCreation(istring_stream, user_name, key, filesystem_path);
         } else if (cmd == "exit") {
             exit(EXIT_SUCCESS);
+        } else if ((cmd == "adduser") && (user_type == admin)) {
+            processAddUser(istring_stream, filesystem_path);
         } else {
             std::cout << "Invalid Command" << std::endl;
         }
+        cmd = "";
+        filename = "";
+        directory_name = "";
+        contents="";
     } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
 
     return 1;
