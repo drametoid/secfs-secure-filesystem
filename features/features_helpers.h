@@ -88,7 +88,7 @@ void checkIfShared(std::string randomizedFilename, std::string filesystemPath, s
     std::ifstream file(filepath);
     std::vector<std::string> keys, usernames;
     parseFileContents(file, keys, usernames);
-    file.close(); // Ensure file is closed after reading
+    file.close();
 
     updateSharedFiles(keys, usernames, randomizedFilename, filesystemPath, content);
   }
@@ -164,13 +164,10 @@ bool isFileSharedWithUser(std::string filename, std::string filesystemPath, std:
             }
         }
     }
-
-    // Additionally, check if the specific file exists and matches the shared username and value
     if (checkSpecificFile(filepath, sharedUsername, valueToCheck)) {
         return true;
     }
-
-    return false; // Return false if no matching shared file is found
+    return false;
 }
 
 std::string getEncFilename(std::string inputFilename, std::string inputPath, std::string filesystemPath, bool isMkdir) {
@@ -203,7 +200,7 @@ std::string getEncFilename(std::string inputFilename, std::string inputPath, std
 void createAndEncryptFile(std::string filename, std::string contents, std::vector<uint8_t> key, std::string filesystemPath, std::string username) {
   // Ensure the operation is within the user's personal directory
   if (!checkIfPersonalDirectory(username, getCustomPWD(filesystemPath), filesystemPath)) {
-    std::cout << "Forbidden " << std::endl; // Operation is not allowed if outside personal directory
+    std::cout << "Forbidden " << std::endl;
     return;
   }
 
@@ -272,7 +269,7 @@ std::string decryptFilePath(std::string path, const std::string& filesystemPath)
     for (const auto& name : decryptedFilenames) {
         decryptedFilePath += name + "/";
     }
-    decryptedFilePath.pop_back(); // Remove the trailing "/"
+    decryptedFilePath.pop_back();
 
     return decryptedFilePath;
 }

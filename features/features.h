@@ -78,9 +78,7 @@ void addContentsToFile(std::string filename, std::string filepath, std::string c
 }
 
 /**
- * Shares a file with a specified user by encrypting and copying it to the user's shared directory.
- * The function first checks if the file and the user exist. Then, it encrypts the file with the user's key
- * and places it in the user's shared directory, recording the action in a shared files log.
+ * Shares file with other user
  * 
  * @param key The encryption key used for decrypting the file before re-encrypting it for the recipient.
  * @param username The name of the user with whom the file is to be shared.
@@ -355,7 +353,7 @@ int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t>
         filename = "";
         directory_name = "";
         contents="";
-    } while (cmd != "exit"); // only exit out of command line when using "exit" cmd
+    } while (cmd != "exit");
 
     return 1;
 }
