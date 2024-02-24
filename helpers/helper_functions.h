@@ -38,6 +38,24 @@ bool createDirectory(const fs::path& path) {
     }
 }
 
+/// Normalize a path by removing trailing slashes and collapsing consecutive slashes to a single slash
+/// \param path The path to normalize
+std::string normalizePath(std::string path) {
+    int n = path.length();
+    int i = n - 1;
+    while (i > 0 && path[i] == '/') {
+        i--;
+    }
+    path.erase(i + 1, n - i - 1);
+    if (path.length() > 1) {
+        std::string::iterator it = std::unique(path.begin(), path.end(), [](char currentChar, char nextChar) {
+            return currentChar == nextChar && currentChar == '/';
+        });
+        path.erase(it, path.end());
+    }
+    return path;
+}
+
 std::vector<uint8_t> readEncKeyFromMetadata(const std::string& userName, const std::string& directory) {
     const std::string metadataFilePath = !directory.empty() ? directory : "common/";
     std::ifstream metadataFile(metadataFilePath + userName + "_key", std::ios::in | std::ios::binary);
