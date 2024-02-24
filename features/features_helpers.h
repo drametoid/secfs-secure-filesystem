@@ -79,21 +79,6 @@ void parseFileContents(std::ifstream& file, std::vector<std::string>& keys, std:
   }
 }
 
-// Checks if a file is shared, and if so, updates shared files accordingly.
-void checkIfShared(std::string randomizedFilename, std::string filesystemPath, std::string content) {
-  // Construct the filepath to the shared file directory
-  std::string filepath = filesystemPath + "/shared/" + randomizedFilename;
-
-  if (fs::exists(filepath)) {
-    std::ifstream file(filepath);
-    std::vector<std::string> keys, usernames;
-    parseFileContents(file, keys, usernames);
-    file.close();
-
-    updateSharedFiles(keys, usernames, randomizedFilename, filesystemPath, content);
-  }
-}
-
 // Updates shared files with encrypted content for each user specified in the usernames vector
 void updateSharedFiles(std::vector<std::string> keys, std::vector<std::string> usernames, std::string randomizedFilename, std::string filesystemPath, std::string content) {
     for (int i = 0; i < keys.size(); i++) {
@@ -109,6 +94,21 @@ void updateSharedFiles(std::vector<std::string> keys, std::vector<std::string> u
         // Encrypt the file at the specified path with the provided content using the user's encryption key
         Encryption::encryptFile(shareUserPath, content, shareKey);
     }
+}
+
+// Checks if a file is shared, and if so, updates shared files accordingly.
+void checkIfShared(std::string randomizedFilename, std::string filesystemPath, std::string content) {
+  // Construct the filepath to the shared file directory
+  std::string filepath = filesystemPath + "/shared/" + randomizedFilename;
+
+  if (fs::exists(filepath)) {
+    std::ifstream file(filepath);
+    std::vector<std::string> keys, usernames;
+    parseFileContents(file, keys, usernames);
+    file.close();
+
+    updateSharedFiles(keys, usernames, randomizedFilename, filesystemPath, content);
+  }
 }
 
 // Checks a specific file for a match with the shared username and the value to check

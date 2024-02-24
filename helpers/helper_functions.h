@@ -71,6 +71,15 @@ std::vector<uint8_t> readEncKeyFromMetadata(const std::string& userName, const s
     return encryptionKey;
 }
 
+bool isValidFilename(const std::string& filename) {
+    std::regex validFilenamePattern(
+        "^[a-zA-Z0-9](?:[a-zA-Z0-9 ._-]*[a-zA-Z0-9])?(\\.(?!$)[a-zA-Z0-9_-]+)+$"
+        "|^([a-zA-Z0-9](?:[a-zA-Z0-9 ._-]*[a-zA-Z0-9])?)$"
+    );
+    const int MaxFilenameLength = 255;
+    return std::regex_match(filename, validFilenamePattern) && (filename.length() <= MaxFilenameLength);
+}
+
 bool checkIfPersonalDirectory(const std::string& username, const std::string& pwd, const std::string& filesystemPath) {
     std::string userDirectory = FilenameRandomizer::GetRandomizedName("/filesystem/" + username, filesystemPath);
     std::string personalDirectory = FilenameRandomizer::GetRandomizedName("/filesystem/" + userDirectory + "/personal", filesystemPath);
