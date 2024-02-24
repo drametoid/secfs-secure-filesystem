@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "authentication/authentication.h"
+#include "features/features.h"
 #include "helpers/helper_functions.h"
 
 namespace fs = std::filesystem;
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]) {
                 userType = UserType::admin;
             else
                 userType = UserType::user;
+
+            userFeatures(userName, userType, readEncKeyFromMetadata(userName, ""), filesystemPath);
         }
     } 
     else {
@@ -49,5 +52,6 @@ int main(int argc, char *argv[]) {
 
     std::string userName = "admin";
     addUser(userName, filesystemPath, true);
+    userFeatures(userName, UserType::admin, readEncKeyFromMetadata(userName, ""), filesystemPath);
   }
 }
