@@ -24,6 +24,136 @@ void printDecryptedCurrentPath(std::string filesystemPath) {
   std::cout << pwd << std::endl;
 }
 
+void handleChangeDirectory(std::string& directoryName, fs::path& rootPath, const std::string& filesystemPath) {
+    if(directoryName.empty()) {
+        directoryName = "/";
+        fs::current_path(rootPath);
+        return;
+    }
+
+    if(directoryName.find('`') != std::string::npos) {
+      std::cerr << "Error: directory name should not contain `backticks`, try again." << std::endl;
+    } 
+    else {
+        if (directoryName == "~" || directoryName == "/"){
+            fs::current_path(rootPath);
+            return;
+        }
+
+        directoryName = normalizePath(directoryName);
+        directoryName = getEncryptedFilePath(directoryName, filesystemPath);
+
+        if(directoryName == "." || directoryName == "./") {
+            return;
+        }
+
+        if (!(fs::exists(directoryName) && fs::is_directory(directoryName))) {
+            std::cout << "ERROR: Path is either not a directory or doesn't exist!" << std::endl;
+            return;
+        }
+
+        fs::path current_path = fs::current_path();
+        fs::path target_path = fs::absolute(directoryName);
+        fs::path relative_path = fs::relative(target_path, rootPath);
+        fs::path resolved_root = fs::absolute(rootPath);
+        fs::path resolved_target = fs::absolute(target_path);
+        if (target_path.has_relative_path()) {
+            if (fs::exists(directoryName) && fs::is_directory(directoryName)) {
+                if(target_path.lexically_relative(rootPath).native().front() == '.') {
+                    if(directoryName == "." || directoryName == "..") {
+                        if (directoryName == "/") {
+                            fs::current_path(rootPath);
+                        } 
+                        else if (target_path == rootPath) {
+                            if (current_path == rootPath) {
+                                fs::current_path(fs::current_path());
+                            } 
+                            else {
+                                fs::current_path(rootPath);
+                            }
+                        } 
+                        else if (target_path == rootPath.parent_path()) {
+                            fs::current_path(fs::current_path().parent_path());
+                        } 
+                        else {
+                            std::cerr << "Directory is outside of the root directory." << std::endl;
+                            std::cout << "Staying in current directory." << std::endl;
+                        }
+                    }
+                    else {
+                        if (target_path == rootPath) {
+                            if (current_path == rootPath) {
+                                fs::current_path(fs::current_path());
+                            } else {
+                                fs::current_path(rootPath);
+                            }
+                        } 
+                        else {
+                            std::cerr << "Directory is outside of the root directory." << std::endl;
+                            std::cout << "Staying in current directory." << std::endl;
+                        }
+                    }
+                } 
+                else {
+                    if (directoryName == "/") {
+                        fs::current_path(rootPath);
+                    } 
+                    else if (target_path == rootPath) {
+                        if (current_path == rootPath) {
+                            fs::current_path(fs::current_path());
+                        } else {
+                            fs::current_path(rootPath);
+                        }
+                    } 
+                    else if (target_path == rootPath.parent_path()) {
+                        fs::current_path(fs::current_path().parent_path());
+                    } 
+                    else if (fs::exists(directoryName) && fs::is_directory(directoryName)) {
+                        if (relative_path.has_parent_path()) {
+                            if (relative_path.string().find("..") != std::string::npos) {
+                                std::cerr << "Directory is outside of the root directory." << std::endl;
+                                std::cout << "Staying in current directory." << std::endl;
+                            } else {
+                                if (fs::exists(directoryName) && fs::is_directory(directoryName)) {
+                                    fs::current_path(target_path);
+                                } else {
+                                    std::cerr << "Directory does not exist." << std::endl;
+                                    std::cout << "Staying in current directory." << std::endl;
+                                }
+                            }
+                        }
+                        else {
+                            if (relative_path.string().find("..") != std::string::npos) {
+                                std::cerr << "Directory is outside of the root directory." << std::endl;
+                                std::cout << "Staying in current directory." << std::endl;
+                            } else {
+                                fs::current_path(target_path);
+                            }
+                        }
+                    } 
+                    else {
+                        std::cerr << "Directory does not exist." << std::endl;
+                        std::cout << "Staying in current directory." << std::endl;
+                    }
+                }
+            }
+            else {
+                std::cerr << "Directory does not exist." << std::endl;
+                std::cout << "Staying in current directory." << std::endl;
+            }
+        }
+        else {
+            if (directoryName == "/"){
+                fs::current_path(rootPath);
+            } 
+            else {
+                std::cerr << "Give a relative path." << std::endl;
+                std::cout << "Staying in current directory." << std::endl;
+            }
+        }
+    }
+}
+
 /**
  * Shows content of current directory
  * @param filesystemPath The base path of the filesystem
@@ -287,75 +417,78 @@ void processAddUser(std::istringstream& inputStream, std::string filesystemPath)
     addUser(newUser, filesystemPath, false);
 }
 
-int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystem_path) {
-    std::cout << "++++++++++++++++++++++++" << std::endl;
-    std::cout << "++| WELCOME TO EFS! |++" << std::endl;
-    std::cout << "++++++++++++++++++++++++" << std::endl;
-    std::cout << "\nEFS Commands Available: \n" << std::endl;
+int userFeatures(std::string user_name, UserType user_type, std::vector<uint8_t> key, std::string filesystemPath) {
+  std::cout << "++++++++++++++++++++++++" << std::endl;
+  std::cout << "++| WELCOME TO EFS! |++" << std::endl;
+  std::cout << "++++++++++++++++++++++++" << std::endl;
+  std::cout << "\nEFS Commands Available: \n" << std::endl;
 
-    std::cout << "cd <directory> \n"
-            "pwd \n"
-            "ls  \n"
-            "cat <filename> \n"
-            "share <filename> <username> \n"
-            "mkdir <directory_name> \n"
-            "mkfile <filename> <contents> \n"
-            "exit \n";
-    if (user_type == admin) {
-        // if admin, allow the following command as well
-        std::cout << "adduser <username>" << std::endl;
-        std::cout << "++++++++++++++++++++++++" << std::endl;
-    } else if (user_type == user) {
-        std::cout << "++++++++++++++++++++++++" << std::endl;
-        // set root path = user's root path which is its own directory
-        std::string user_folder = FilenameRandomizer::GetRandomizedName("/filesystem/" + user_name, filesystem_path);
-        rootPath = userRootPath / user_folder;
+  std::cout << "cd <directory> \n"
+          "pwd \n"
+          "ls  \n"
+          "cat <filename> \n"
+          "share <filename> <username> \n"
+          "mkdir <directory_name> \n"
+          "mkfile <filename> <contents> \n"
+          "exit \n";
+
+  if (user_type == admin) {
+    std::cout << "adduser <username>" << std::endl;
+    std::cout << "++++++++++++++++++++++++" << std::endl;
+    rootPath = adminRootPath;
+  } else if (user_type == user) {
+    std::cout << "++++++++++++++++++++++++" << std::endl;
+    std::string user_folder = FilenameRandomizer::GetRandomizedName("/filesystem/" + user_name, filesystemPath);
+    rootPath = userRootPath / user_folder;
+  }
+
+  fs::current_path(rootPath);
+  std::string input_feature, cmd, filename, username, directoryName, contents;
+
+  do {
+    std::cout << user_name << " " << decryptFilePath(getCustomPWD(filesystemPath), filesystemPath) << "> ";
+    getline(std::cin, input_feature);
+
+    if (std::cin.eof()) {
+        std::cout << "Ctrl+D detected." << std::endl;
+        return 1;
     }
 
-    fs::current_path(rootPath);
-    std::string input_feature, cmd, filename, username, directory_name, contents;
+    std::istringstream istring_stream(input_feature);
+    istring_stream >> cmd;
 
-    do {
-        std::cout << user_name << " " << decryptFilePath(getCustomPWD(filesystem_path), filesystem_path) << "> ";
-        // get command from the user
-        getline(std::cin, input_feature);
+    if (cmd == "cd") {
+        istring_stream.clear();
+        directoryName = "/";
+        istring_stream >> directoryName;
+        handleChangeDirectory(directoryName, rootPath, filesystemPath);
+    } else if (cmd == "pwd") {
+        printDecryptedCurrentPath(filesystemPath);
+    } else if (cmd == "ls") {
+        listDirectoryContents(filesystemPath);
+    } else if (cmd == "cat") {
+        processFileAccess(istring_stream, filesystemPath, user_type, key);
+    } else if (cmd == "share") {
+        handleFileSharing(istring_stream, user_name, key, filesystemPath);
+    } else if (cmd == "mkdir") {
+        istring_stream >> directoryName;
+        processCreateDirectoryInUserSpace(directoryName, filesystemPath, user_name);
+    } else if (cmd == "mkfile") {
+        processFileCreation(istring_stream, user_name, key, filesystemPath);
+    } else if (cmd == "exit") {
+      exit(EXIT_SUCCESS);
+    } else if ((cmd == "adduser") && (user_type == admin)) {
+        processAddUser(istring_stream, filesystemPath);
+    } else {
+      std::cout << "Invalid Command" << std::endl;
+    }
+    cmd = "";
+    filename = "";
+    directoryName = "";
+    contents="";
+  } while (cmd != "exit");
 
-        if (std::cin.eof()) {
-            std::cout << "Ctrl+D detected." << std::endl;
-            return 1;
-        }
-
-        // get the first word (command) from the input
-        std::istringstream istring_stream(input_feature);
-        istring_stream >> cmd;
-
-        if (cmd == "pwd") {
-            printDecryptedCurrentPath(filesystem_path);
-        } else if (cmd == "ls") {
-            listDirectoryContents(filesystem_path);
-        } else if (cmd == "cat") {
-            processFileAccess(istring_stream, filesystem_path, user_type, key);
-        } else if (cmd == "share") {
-            handleFileSharing(istring_stream, user_name, key, filesystem_path);
-        } else if (cmd == "mkdir") {
-            istring_stream >> directory_name;
-            processCreateDirectoryInUserSpace(directory_name, filesystem_path, user_name);
-        } else if (cmd == "mkfile") {
-            processFileCreation(istring_stream, user_name, key, filesystem_path);
-        } else if (cmd == "exit") {
-            exit(EXIT_SUCCESS);
-        } else if ((cmd == "adduser") && (user_type == admin)) {
-            processAddUser(istring_stream, filesystem_path);
-        } else {
-            std::cout << "Invalid Command" << std::endl;
-        }
-        cmd = "";
-        filename = "";
-        directory_name = "";
-        contents="";
-    } while (cmd != "exit");
-
-    return 1;
+  return 1;
 }
 
 #endif // FEATURES_H
