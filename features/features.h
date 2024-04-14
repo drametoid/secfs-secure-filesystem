@@ -227,7 +227,7 @@ void shareFile(std::vector<uint8_t> key, std::string username, std::string filen
     std::string randomizedSharedDirectory = getRandomizedSharedDirectory(randomizedUserDirectory, filesystemPath);
     std::string content = Encryption::decryptFile(randomizedFilename, key);
     std::vector<uint8_t> shareKey = readEncKeyFromMetadata(username, filesystemPath + "/common/");
-    std::string filenameKey = "/filesystem/" + randomizedUserDirectory + "/" + randomizedSharedDirectory + "/" + loggedUsername + "-" + filename;
+    std::string filenameKey = "/filesystem/" + randomizedUserDirectory + "/" + randomizedSharedDirectory + "/" + filename;
     std::string sharedRandomizedFilename = FilenameRandomizer::EncryptFilename(filenameKey, filesystemPath);
     std::string shareUserPath = filesystemPath + "/filesystem/" + randomizedUserDirectory + "/" + randomizedSharedDirectory + "/" + sharedRandomizedFilename;
     Encryption::encryptFile(shareUserPath, content, shareKey);
