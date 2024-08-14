@@ -1,4 +1,4 @@
-# secure-filesystem
+# SecFS: An Encrypted Mini Filesystem
 Building an encrypted fileserver for learnings on Secure System Design
 
 # How to use:
